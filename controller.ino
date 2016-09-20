@@ -6,6 +6,12 @@
 
 volatile unsigned char cube[8][8];
 volatile int current_layer = 0;
+/*******************************************************
+Both set up and ISR must be modified before switching	
+boards. 256 is the lowerst prescaler to be used for visual
+effects.
+*****************************************************/
+
 
 void setup()
 {
@@ -15,19 +21,16 @@ void setup()
   for(i=0; i<14; i++)
     pinMode(i, OUTPUT);
 
-  // pinMode(A0, OUTPUT) as specified in the arduino reference didn't work. So I accessed the registers directly.
   DDRC = 0xff;
   PORTC = 0x00;
-
-  // Reset any PWM configuration that the arduino may have set up automagically!
+  
   TCCR2A = 0x00;
   TCCR2B = 0x00;
 
-  TCCR2A |= (0x01 << WGM21); // CTC mode. clear counter on TCNT2 == OCR2A
-  OCR2A = 10; // Interrupt every 25600th cpu cycle (256*100)
-  TCNT2 = 0x00; // start counting at 0
-  TCCR2B |= (0x01 << CS22) | (0x01 << CS21); // Start the clock with a 256 prescaler
-
+  TCCR2A |= (0x01 << WGM21); 
+  OCR2A = 10; 
+  TCNT2 = 0x00;
+  TCCR2B |= (0x01 << CS22) | (0x01 << CS21); 
   TIMSK2 |= (0x01 << OCIE2A);
 }
 
@@ -70,6 +73,12 @@ ISR (TIMER2_COMPA_vect)
 
 void loop()  //ALL VISUAL EFFECTS ARE STARTED FROM HERE
 {
+/**********************************************
+preset visual patterns triggerd in the loop. 
+Serial port must be checked on interupts outside
+of the loop for dynamic effects
+**********************************************/ 	
+
   int i,x,y,z;
 
   while (true)
@@ -113,49 +122,54 @@ void loop()  //ALL VISUAL EFFECTS ARE STARTED FROM HERE
   }
 }
 
+/***********************************************************
+Patterns
+Use helper function to orchestrate patterns
+************************************************************/
 
-// ==========================================================================================
-//   Effect functions
-// ==========================================================================================
-//void level_fill_rand()
-//{
-//  fill(0x00);
-//  int x, y, z, i, ii, level, num_nodes;
-//  i = 0;
-//  ii = 0;
-//  num_nodes = 5;
-//  num_nodes = (num_nodes * num_nodes) * num_nodes;
-//  while(i < num_nodes)
-//  {
-//    x = (rand() % 8);
-//    y = (rand() % 8);
-//    z = (rand() % 8);
-//
-//      if((((x < 7) && (x >= 5)) || (x <= 3)) && (((y < 7) && (y >= 5)) || (y <= 3)) && (((z < 7) && (z >= 5)) || (z <= 3)))
-//      { 
-//  
-//      
-//        if(inrange(x, y, z) && (getvoxel(x, y, z) == 0x00))
-//        {
-//          setvoxel(x, y, z);
-//          i++;
-//        }
-//        else
-//        {
-//          ii++;
-//          if(ii == 50)
-//          {
-//            i++;
-//            ii = 0;
-//          }
-//        }
-//        delay_ms(80);
-//    }
-//    //setvoxel(7, 7, 7);
-//    //delay_ms(1000);
-//  }
-//  
-//}
+/*
+Needs to be modified to work on the mega2560 
+
+void level_fill_rand()
+{
+ fill(0x00);
+ int x, y, z, i, ii, level, num_nodes;
+ i = 0;
+ ii = 0;
+ num_nodes = 5;
+ num_nodes = (num_nodes * num_nodes) * num_nodes;
+ while(i < num_nodes)
+ {
+   x = (rand() % 8);
+   y = (rand() % 8);
+   z = (rand() % 8);
+
+     if((((x < 7) && (x >= 5)) || (x <= 3)) && (((y < 7) && (y >= 5)) || (y <= 3)) && (((z < 7) && (z >= 5)) || (z <= 3)))
+     { 
+ 
+     
+       if(inrange(x, y, z) && (getvoxel(x, y, z) == 0x00))
+       {
+         setvoxel(x, y, z);
+         i++;
+       }
+       else
+       {
+         ii++;
+         if(ii == 50)
+         {
+           i++;
+           ii = 0;
+         }
+       }
+       delay_ms(80);
+   }
+   //setvoxel(7, 7, 7);
+   //delay_ms(1000);
+ }
+ 
+}
+*/
 
 void explosion_fill()
 {
@@ -439,9 +453,11 @@ void effect_planboing (int plane, int speed)
   }
 }
 
-// ==========================================================================================
-//   Draw functions
-// ==========================================================================================
+/************************************************************************
+Helper functions
+Lower level functions to access and controller the lighting through
+registers. 
+*********************************************************************/
 
 
 // Set a single voxel to ON
